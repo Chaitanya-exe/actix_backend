@@ -1,5 +1,7 @@
-use actix_web::{get, post, web, App, error , HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, error , HttpResponse, HttpServer, Responder, guard};
+use handlers::{another_func, user_func};
 mod handlers;
+mod middleware;
 
 #[post("/echo")]
 async fn echo(req_body: String) -> impl Responder{
@@ -22,10 +24,19 @@ async fn main() -> std::io::Result<()> {
             });
         
         App::new()
+            .app_data(json_config)
             .service(
-                web::scope("/api")
-                    .app_data(json_config)
-                    .route("/register",web::post().to(handlers::user_func))
+                web::resource("/api").route(
+                        web::route()
+                            .guard(guard::Post())
+                            .guard(guard::Header("content-type", "application/json"))
+                            .to(user_func)
+                    )
+            )
+            .service(
+                web::resource("/test").route(
+                    web::route().to(another_func)
+                )
             )
                       
     })
